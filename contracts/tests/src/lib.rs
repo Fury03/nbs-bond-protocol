@@ -857,7 +857,7 @@ mod integration {
             contracts.oc_client.register_provider(
                 &admin,
                 &oracle_b,
-                &Symbol::new(&env, "verra_vcs"),
+                &Symbol::new(&env, "iot_sensors"),
                 &1,
             );
             contracts.oc_client.register_provider(

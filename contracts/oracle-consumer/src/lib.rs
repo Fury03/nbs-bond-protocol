@@ -621,12 +621,12 @@ impl OracleConsumer {
                         .persistent()
                         .get::<DataKey, OracleProvider>(&verifier_key)
                     {
-                        if !seen_categories.contains(&vp.category) {
+                        if !seen_categories.contains(vp.category) {
                             seen_categories.push_back(vp.category);
                         }
                     }
                 }
-                if seen_categories.contains(&p.category) {
+                if seen_categories.contains(p.category) {
                     return Err(OracleError::InsufficientMethodologyDiversity);
                 }
             }
