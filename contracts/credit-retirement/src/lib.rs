@@ -326,6 +326,14 @@ impl CreditRetirement {
             return Err(CreditError::InsufficientCredits);
         }
 
+        // CouponEngine scopes the deduct nonce to this contract (the
+        // registered deduct caller), so read it before passing it through.
+        let deduct_nonce: u64 = env.invoke_contract(
+            &coupon_engine,
+            &Symbol::new(&env, "get_nonce"),
+            vec![&env, env.current_contract_address().into_val(&env)],
+        );
+
         // Atomically deduct from CouponEngine so retired credits cannot be
         // claimed again via `claim_credits`.
         let deducted = env.try_invoke_contract::<i128, CouponEngineError>(
@@ -337,6 +345,7 @@ impl CreditRetirement {
                 holder.clone().into_val(&env),
                 amount.into_val(&env),
                 credit_type.into_val(&env),
+                deduct_nonce.into_val(&env),
             ],
         );
         match deducted {
@@ -726,6 +735,35 @@ mod test {
         assert_eq!(cert.certificate_hash, hash);
 
         assert_eq!(s.client.total_retirements(), 1);
+    }
+
+    #[test]
+    fn test_deduct_credits_replay_rejected() {
+        let s = setup();
+
+        // Each retirement consumes the retirement contract's deduct nonce.
+        assert_eq!(s.ce_client.get_nonce(&s.contract_id), 0);
+        s.client.retire_credits(
+            &s.holder,
+            &s.bond_id,
+            &s.project_id,
+            &0u32,
+            &1,
+            &CreditType::Carbon,
+            &make_certificate_hash(&s._env, 1),
+            &0,
+        );
+        assert_eq!(s.ce_client.get_nonce(&s.contract_id), 1);
+
+        // Replaying a deduction with an already-consumed nonce fails.
+        let replay =
+            s.ce_client
+                .try_deduct_credits(&s.bond_id, &s.holder, &1, &CreditType::Carbon, &0);
+        assert_eq!(replay, Err(Ok(CouponEngineError::InvalidNonce)));
+
+        s.ce_client
+            .deduct_credits(&s.bond_id, &s.holder, &1, &CreditType::Carbon, &1);
+        assert_eq!(s.ce_client.get_nonce(&s.contract_id), 2);
     }
 
     #[test]

@@ -830,6 +830,21 @@ mod test {
     }
 
     #[test]
+    fn test_transfer_replay_rejected() {
+        let (env, client, admin, user) = setup();
+        let user2 = Address::generate(&env);
+        let config = make_config(&env);
+        let bond_id = client.issue_bond(&admin, &config, &0);
+
+        client.subscribe(&user, &bond_id, &1000, &0);
+        client.transfer(&user, &user2, &bond_id, &100, &1);
+
+        let replay = client.try_transfer(&user, &user2, &bond_id, &100, &1);
+        assert_eq!(replay, Err(Ok(BondError::InvalidNonce)));
+        assert_eq!(client.get_nonce(&user), 2);
+    }
+
+    #[test]
     fn test_transfer_after_maturity_date_rejected() {
         let (env, client, admin, user) = setup();
         let user2 = Address::generate(&env);

@@ -982,6 +982,13 @@ impl CouponEngine {
         })
     }
 
+    /// Current replay-protection nonce for `addr`. Cross-contract callers
+    /// (e.g. the registered deduct caller) read this to pass the expected
+    /// nonce through.
+    pub fn get_nonce(env: Env, addr: Address) -> u64 {
+        get_nonce(&env, &addr)
+    }
+
     pub fn register_deduct_caller(
         env: Env,
         caller: Address,
@@ -1011,6 +1018,7 @@ impl CouponEngine {
         holder: Address,
         amount: i128,
         credit_type: CreditType,
+        nonce: u64,
     ) -> Result<i128, CouponEngineError> {
         let authorized: Address = env
             .storage()
@@ -1018,6 +1026,12 @@ impl CouponEngine {
             .get(&DataKey::DeductCaller)
             .ok_or(CouponEngineError::Unauthorized)?;
         authorized.require_auth();
+
+        let expected_nonce = get_nonce(&env, &authorized);
+        if nonce != expected_nonce {
+            return Err(CouponEngineError::InvalidNonce);
+        }
+        set_nonce(&env, &authorized, expected_nonce + 1);
 
         if amount <= 0 {
             return Err(CouponEngineError::ZeroAmount);
