@@ -95,16 +95,20 @@ pub enum OracleError {
     /// elapsed; challenges may only be expired once resolution has stalled
     /// past `CHALLENGE_TIMEOUT_SECONDS`.
     ChallengeNotStale = 25,
+    /// A report period starts before the end of the most recently submitted
+    /// period for the same project. Reports must be chronological so the
+    /// bounded overlap index cannot permit overlaps with evicted history.
+    BackdatedReportPeriod = 26,
     /// A verifier's independence category was already represented among a
     /// report's existing verifiers (or matched the report's own methodology
     /// category). Multi-source consensus requires genuinely independent
     /// providers; two registrations under the same methodology taxonomy must
     /// never co-verify the same report.
-    InsufficientMethodologyDiversity = 26,
+    InsufficientMethodologyDiversity = 27,
     /// `register_provider` was called with a methodology symbol outside the
     /// canonical `ProviderCategory` taxonomy. An uncategorized methodology
     /// could not participate in the independence check.
-    InvalidMethodology = 27,
+    InvalidMethodology = 28,
 }
 
 #[derive(Clone, Debug, PartialEq)]
